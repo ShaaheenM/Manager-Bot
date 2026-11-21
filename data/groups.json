@@ -1,1 +1,9 @@
-{}
+{
+  "-1004449188256": {
+    "welcome": false,
+    "antiSpam": false,
+    "antiLink": false,
+    "slowMode": false,
+    "slowModeSeconds": 5
+  }
+}

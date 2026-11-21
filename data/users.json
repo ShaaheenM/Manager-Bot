@@ -1,1 +1,39 @@
-{}
+{
+  "8217292830": {
+    "id": 8217292830,
+    "firstName": "ShaaheenM",
+    "lastName": null,
+    "username": "ShaaheenM",
+    "firstSeen": "2026-11-21T21:12:40.321Z",
+    "lastSeen": "2026-11-21T21:19:13.183Z",
+    "interactions": 4,
+    "chats": {
+      "-1004449188256": {
+        "type": "supergroup",
+        "title": "Mine",
+        "lastSeen": "2026-11-21T21:12:40.321Z"
+      },
+      "-1004401763728": {
+        "type": "supergroup",
+        "title": "Me",
+        "lastSeen": "2026-11-21T21:19:13.183Z"
+      }
+    }
+  },
+  "7954647517": {
+    "id": 7954647517,
+    "firstName": "Alien",
+    "lastName": null,
+    "username": "Mmmmm99999hhhhh",
+    "firstSeen": "2026-11-21T21:17:35.031Z",
+    "lastSeen": "2026-11-21T21:17:35.031Z",
+    "interactions": 1,
+    "chats": {
+      "-1004449188256": {
+        "type": "supergroup",
+        "title": "Mine",
+        "lastSeen": "2026-11-21T21:17:35.031Z"
+      }
+    }
+  }
+}

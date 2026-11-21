@@ -1,0 +1,151 @@
+
+const fs = require("node:fs/promises");
+const path = require("node:path");
+
+const DATA_DIR = path.join(__dirname, "../../data");
+
+// Only allow files that belong to our database.
+const allowedFiles = [
+    "groups.json",
+    "users.json",
+    "warnings.json"
+];
+
+// Keep track of operations for each file.
+const queues = new Map();
+
+let tempCounter = 0;
+
+function getFilePath(filename) {
+    if (!allowedFiles.includes(filename)) {
+        throw new Error("Invalid database filename");
+    }
+
+    return path.join(DATA_DIR, filename);
+}
+
+// Serialize operations on the same file.
+function enqueue(filePath, operation) {
+    const previous = queues.get(filePath) || Promise.resolve();
+
+    const current = previous
+        .catch(() => {})
+        .then(operation);
+
+    queues.set(filePath, current);
+
+    current.finally(() => {
+        if (queues.get(filePath) === current) {
+            queues.delete(filePath);
+        }
+    }).catch(() => {});
+
+    return current;
+}
+
+// Atomically write JSON data.
+
+async function atomicWrite(filePath, data) {
+    const tempPath =
+        `${filePath}.${process.pid}.${++tempCounter}.tmp`;
+
+    try {
+        const json = JSON.stringify(data, null, 2);
+
+        if (json === undefined) {
+            throw new Error(
+                "Data cannot be converted to JSON"
+            );
+        }
+
+        await fs.writeFile(
+            tempPath,
+            json + "\n",
+            "utf8"
+        );
+
+        await fs.rename(tempPath, filePath);
+
+    } catch (error) {
+        await fs.rm(tempPath, { force: true }).catch(() => {});
+        throw error;
+    }
+}
+
+
+// Read a JSON file.
+async function readJSONFile(filePath, defaultValue) {
+    await fs.mkdir(DATA_DIR, { recursive: true });
+    try {
+        const content = await fs.readFile(filePath, "utf8");
+
+        return JSON.parse(content);
+
+    } catch (error) {
+        if (error.code === "ENOENT") {
+	    await fs.mkdir(
+        path.dirname(filePath),
+        { recursive: true }
+    );
+
+            await atomicWrite(filePath, defaultValue);
+            return defaultValue;
+        }
+
+        if (error instanceof SyntaxError) {
+            throw new Error(
+                `Invalid JSON in ${path.basename(filePath)}. ` +
+                "Repair the file before continuing."
+            );
+        }
+
+        throw error;
+    }
+}
+
+// Public read method.
+function readJSON(filename, defaultValue = {}) {
+//    await fs.mkdir(DATA_DIR, { recursive: true });
+    const filePath = getFilePath(filename);
+
+    return enqueue(filePath, async () => {
+        return readJSONFile(filePath, defaultValue);
+    });
+}
+
+// Public write method.
+function writeJSON(filename, data) {
+    const filePath = getFilePath(filename);
+
+    return enqueue(filePath, async () => {
+        await fs.mkdir(DATA_DIR, { recursive: true });
+        await atomicWrite(filePath, data);
+    });
+}
+
+// Read, modify and save data safely.
+function updateJSON(filename, updater, defaultValue = {}) {
+    const filePath = getFilePath(filename);
+
+    return enqueue(filePath, async () => {
+        await fs.mkdir(DATA_DIR, { recursive: true });
+
+        const data = await readJSONFile(
+            filePath,
+            defaultValue
+        );
+
+        const updatedData = await updater(data);
+
+        await atomicWrite(filePath, updatedData);
+
+        return updatedData;
+    });
+}
+
+module.exports = {
+    readJSON,
+    writeJSON,
+    updateJSON
+};
+
